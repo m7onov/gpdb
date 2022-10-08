@@ -2680,3 +2680,32 @@ shared_record_typmod_registry_detach(dsm_segment *segment, Datum datum)
 	}
 	CurrentSession->shared_typmod_registry = NULL;
 }
+
+float4
+extract_enum_sort_order(uint32 enum_oid){
+	/* Get the OID of the enum type containing our enum */
+	HeapTuple enum_tup = SearchSysCache1(ENUMOID, ObjectIdGetDatum(enum_oid));
+	if (!HeapTupleIsValid(enum_tup)){
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_BINARY_REPRESENTATION),
+					errmsg("invalid internal value for enum: %u",
+						enum_oid)));
+	}
+	Form_pg_enum en = (Form_pg_enum) GETSTRUCT(enum_tup);
+	Oid typeoid = en->enumtypid;
+	ReleaseSysCache(enum_tup);
+
+	// extract sort order from our enum 
+	TypeCacheEntry *tcache = lookup_type_cache(typeoid, 0);
+	if (tcache->enumData == NULL){
+		load_enum_cache_data(tcache);
+	}
+	TypeCacheEnumData *enumdata = tcache->enumData;
+	EnumItem   *enum_obj = find_enumitem(enumdata, enum_oid);
+	if (enum_obj == NULL){
+		elog(ERROR, "enum value %u not found in cache for enum %s",
+				enum_oid, format_type_be(tcache->type_id));
+	}
+
+	return enum_obj->sort_order;
+}
