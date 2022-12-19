@@ -514,7 +514,7 @@ errstart(int elevel, const char *filename, int lineno,
 		 * recovery.
 		 */
 		errordata_stack_depth = -1;		/* make room on stack */
-		ereport(PANIC, (errmsg_internal("ERRORDATA_STACK_SIZE exceeded")));
+		ereport(FATAL, (errmsg_internal("ERRORDATA_STACK_SIZE exceeded")));
 	}
 
 	/* Initialize data for this error frame */
